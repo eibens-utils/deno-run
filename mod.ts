@@ -5,6 +5,12 @@
  */
 export type Cmd = (string | number)[];
 
+export type RunOptions = {
+  cmd: Cmd;
+  cwd?: string;
+  input?: string | Uint8Array;
+}
+
 /**
  * Runs a sub-process with `Deno.run`. 
  * 
@@ -14,11 +20,7 @@ export type Cmd = (string | number)[];
  * - `stdout` is returned as a buffer if the sub-process terminates normally.
  * - `stderr` is converted into text and thrown as an `Error` if the sub-process terminates with an error.
  */
-export async function run(opts: {
-  cmd: Cmd;
-  cwd?: string;
-  input?: string | Uint8Array;
-}) {
+export async function run(opts: RunOptions) {
   const process = Deno.run({
     cwd: opts.cwd,
     cmd: opts.cmd.map(String),
@@ -57,15 +59,29 @@ export async function run(opts: {
 }
 
 /**
- * Convenience function for calling `run` with just the `cmd` array. If the `input` and `cwd` options are needed, use `run`.
+ * Converts a promise of a buffer into a promise of text using the default `TextDecoder`. You can use this function to wrap a `run` call and retrieve text instead of raw bytes.
  */
-export async function runCmd(...cmd: Cmd) {
+export async function toText(buffer: Promise<Uint8Array>): Promise<string> {
+  return new TextDecoder().decode(await buffer);
+}
+
+/**
+ * Convenience function for calling `run` and retrieving the output as text.
+ */
+export async function runToText(opts: RunOptions) {
+  return await toText(run(opts))
+}
+
+/**
+ * Convenience function for calling `run` with just the `cmd` array.
+ */
+ export async function runCmd(...cmd: Cmd) {
   return run({ cmd });
 }
 
 /**
- * Converts a promise of a buffer into a promise of text using the default `TextDecoder`. You can use this function to wrap a `run` call and retrieve text instead of raw bytes from `stdout`.
+ * Convenience function for calling `runCmd` with just the `cmd` array.
  */
-export async function toText(buffer: Promise<Uint8Array>): Promise<string> {
-  return new TextDecoder().decode(await buffer);
+ export async function runCmdToText(...cmd: Cmd) {
+  return runToText({ cmd });
 }

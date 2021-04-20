@@ -1,22 +1,17 @@
 const help = `
-usage: \tdeno run [--allow-read] mockcli.ts <command>
+usage: deno run [--allow-read] mockcli.ts <command>
 
-If the specified command is not available, this help message is printed. 
-These are the available commands:
-
-answer
-\twrites the line "42" to stdout
-
-echo
-\twrites stdin to stdout
-
-fail
-\twrites stdin to stderr and returns an error code
-
-cwd
-\twrites the CWD as a line to stdout
-\t--allow-read permission must be used
-`.trim();
+available commands:
+\tanswer
+\t\twrites the line "42" to stdout
+\techo
+\t\twrites stdin to stdout
+\tfail
+\t\twrites stdin to stderr and returns an error code
+\tcwd
+\t\twrites the CWD as a line to stdout
+\t\t--allow-read permission must be used
+`.trimStart();
 
 async function writeTextToStdout(text: string) {
   const answer = new TextEncoder().encode(text);

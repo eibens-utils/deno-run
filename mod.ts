@@ -9,7 +9,7 @@ export type RunOptions = {
   cmd: Cmd;
   cwd?: string;
   input?: string | Uint8Array;
-}
+};
 
 /**
  * Runs a sub-process with `Deno.run`. 
@@ -34,7 +34,7 @@ export async function run(opts: RunOptions) {
     if (typeof input === "string") {
       input = new TextEncoder().encode(input);
     }
-    process.stdin.write(input)
+    process.stdin.write(input);
 
     // Read streams to close them.
     // For info see: https://github.com/denoland/deno/issues/4568#issuecomment-772463496
@@ -53,7 +53,7 @@ export async function run(opts: RunOptions) {
     }
   } finally {
     // Avoid leaking resources.
-    process.stdin.close()
+    process.stdin.close();
     process.close();
   }
 }
@@ -69,19 +69,19 @@ export async function toText(buffer: Promise<Uint8Array>): Promise<string> {
  * Convenience function for calling `run` and retrieving the output as text.
  */
 export async function runToText(opts: RunOptions) {
-  return await toText(run(opts))
+  return await toText(run(opts));
 }
 
 /**
  * Convenience function for calling `run` with just the `cmd` array.
  */
- export async function runCmd(...cmd: Cmd) {
+export async function runCmd(...cmd: Cmd) {
   return run({ cmd });
 }
 
 /**
  * Convenience function for calling `runCmd` with just the `cmd` array.
  */
- export async function runCmdToText(...cmd: Cmd) {
+export async function runCmdToText(...cmd: Cmd) {
   return runToText({ cmd });
 }

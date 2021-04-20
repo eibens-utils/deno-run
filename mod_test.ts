@@ -3,7 +3,7 @@ import {
   assertThrows,
   assertThrowsAsync,
 } from "https://deno.land/std@0.90.0/testing/asserts.ts";
-import { Cmd, run, toText, runCmdToText, runToText } from "./mod.ts";
+import { Cmd, run, runCmdToText, runToText, toText } from "./mod.ts";
 import { join } from "https://deno.land/std@0.91.0/path/mod.ts";
 
 const mockcli = "mockcli.ts";
@@ -13,16 +13,16 @@ function cmd(path: string, ...args: Cmd): Cmd {
 }
 
 Deno.test("toText converts buffer to text", async () => {
-  const buffer = new TextEncoder().encode("42")
+  const buffer = new TextEncoder().encode("42");
   assertEquals(
     await toText(Promise.resolve(buffer)),
-    "42"
-  )
-})
+    "42",
+  );
+});
 
 Deno.test("runs a command and returns the output", async () => {
   assertEquals(
-    await runCmdToText(...cmd(mockcli, "answer"),),
+    await runCmdToText(...cmd(mockcli, "answer")),
     "42\n",
   );
 });

@@ -1,43 +1,50 @@
 import {
-  assert,
   assertEquals,
   assertThrowsAsync,
 } from "https://deno.land/std@0.90.0/testing/asserts.ts";
-import { output, succeeds, text } from "./mod.ts";
+import { cmd, pipe, piped, set, success, text } from "./mod.ts";
 import { join } from "https://deno.land/std@0.91.0/path/mod.ts";
 
 const mockcliFile = "mockcli.ts";
-
 const denoRun = ["deno", "run", "--allow-read"];
 const mockcli = [...denoRun, mockcliFile];
 
+const answer = pipe(
+  set({ cmd: [...mockcli, "answer"] }),
+  text,
+);
+
+function echo(data?: string) {
+  return pipe(
+    cmd<Uint8Array>(...mockcli, "echo"),
+    pipe(set({ input: data }), text),
+  );
+}
+
+function fail(data: string) {
+  return pipe(
+    cmd(...mockcli, "fail"),
+    set({ input: data }),
+  );
+}
+
 Deno.test("runs a command and returns the output", async () => {
   assertEquals(
-    await text({
-      cmd: [...mockcli, "answer"],
-    }),
+    await piped(answer),
     "42\n",
   );
 });
 
 Deno.test("run passes input to stdin", async () => {
   assertEquals(
-    await text({
-      cmd: [...mockcli, "echo"],
-      input: "hello, world",
-    }),
+    await piped(echo("hello, world")),
     "hello, world",
   );
 });
 
 Deno.test("run throws error if process fails", async () => {
   await assertThrowsAsync(
-    async () => {
-      await output({
-        cmd: [...mockcli, "fail"],
-        input: "oh no!",
-      });
-    },
+    async () => await piped(fail("oh no!")),
     Error,
     "oh no!",
   );
@@ -52,10 +59,10 @@ Deno.test("run uses the specified CWD", async () => {
   try {
     await Deno.copy(src, dst);
     assertEquals(
-      await text({
-        cmd: [...denoRun, tmpMockcli, "cwd"],
-        cwd,
-      }),
+      await piped(pipe(
+        cmd(...denoRun, tmpMockcli, "cwd"),
+        pipe(set({ cwd }), text),
+      )),
       cwd + "\n",
     );
   } finally {
@@ -65,20 +72,16 @@ Deno.test("run uses the specified CWD", async () => {
   }
 });
 
-Deno.test("runSucceeds returns true if command succeeds", async () => {
-  assert(
-    await succeeds({
-      cmd: [...mockcli, "answer"],
-    }),
+Deno.test("success returns true if command succeeds", async () => {
+  assertEquals(
+    await piped(pipe(answer, success)),
+    true,
   );
 });
 
-Deno.test("runSucceeds returns false if command fails", async () => {
+Deno.test("success returns false if command fails", async () => {
   assertEquals(
-    await succeeds({
-      cmd: [...mockcli, "fail"],
-      input: "lol",
-    }),
+    await piped(pipe(fail("oh no!"), success)),
     false,
   );
 });

@@ -1,35 +1,27 @@
 import {
+  assert,
   assertEquals,
-  assertThrows,
   assertThrowsAsync,
 } from "https://deno.land/std@0.90.0/testing/asserts.ts";
-import { Cmd, run, runCmdToText, runToText, toText } from "./mod.ts";
+import * as run from "./mod.ts";
 import { join } from "https://deno.land/std@0.91.0/path/mod.ts";
 
 const mockcli = "mockcli.ts";
 
-function cmd(path: string, ...args: Cmd): Cmd {
+function cmd(path: string, ...args: run.Cmd): run.Cmd {
   return ["deno", "run", "--allow-read", path, ...args];
 }
 
-Deno.test("toText converts buffer to text", async () => {
-  const buffer = new TextEncoder().encode("42");
-  assertEquals(
-    await toText(Promise.resolve(buffer)),
-    "42",
-  );
-});
-
 Deno.test("runs a command and returns the output", async () => {
   assertEquals(
-    await runCmdToText(...cmd(mockcli, "answer")),
+    await run.cmdText(...cmd(mockcli, "answer")),
     "42\n",
   );
 });
 
 Deno.test("run passes input to stdin", async () => {
   assertEquals(
-    await runToText({
+    await run.text({
       cmd: cmd(mockcli, "echo"),
       input: "hello, world",
     }),
@@ -40,7 +32,7 @@ Deno.test("run passes input to stdin", async () => {
 Deno.test("run throws error if process fails", async () => {
   await assertThrowsAsync(
     async () => {
-      await run({
+      await run.output({
         cmd: cmd(mockcli, "fail"),
         input: "oh no!",
       });
@@ -59,7 +51,7 @@ Deno.test("run uses the specified CWD", async () => {
   try {
     await Deno.copy(src, dst);
     assertEquals(
-      await runToText({
+      await run.text({
         cmd: cmd(tmpMockcli, "cwd"),
         cwd,
       }),
@@ -70,4 +62,20 @@ Deno.test("run uses the specified CWD", async () => {
     src.close();
     await Deno.remove(cwd, { recursive: true });
   }
+});
+
+Deno.test("runSucceeds returns true if command succeeds", async () => {
+  assert(
+    await run.cmdSucceeds(...cmd(mockcli, "answer")),
+  );
+});
+
+Deno.test("runSucceeds returns false if command fails", async () => {
+  assertEquals(
+    await run.succeeds({
+      cmd: cmd(mockcli, "fail"),
+      input: "lol",
+    }),
+    false,
+  );
 });

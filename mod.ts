@@ -12,7 +12,7 @@ export type RunOptions = {
 };
 
 /**
- * Runs a sub-process with `Deno.run`. 
+ * Convenience function for running a process and retrieving the output.
  * 
  * Access to the `stdin`, `stdout`, and `stderr` streams is abstracted away: 
  * 
@@ -20,7 +20,7 @@ export type RunOptions = {
  * - `stdout` is returned as a buffer if the sub-process terminates normally.
  * - `stderr` is converted into text and thrown as an `Error` if the sub-process terminates with an error.
  */
-export async function run(opts: RunOptions) {
+export async function output(opts: RunOptions) {
   const process = Deno.run({
     cwd: opts.cwd,
     cmd: opts.cmd.map(String),
@@ -59,29 +59,42 @@ export async function run(opts: RunOptions) {
 }
 
 /**
- * Converts a promise of a buffer into a promise of text using the default `TextDecoder`. You can use this function to wrap a `run` call and retrieve text instead of raw bytes.
+ * Convenience function for getting `true` when the process succeeds, or `false` when it returns an error.
  */
-export async function toText(buffer: Promise<Uint8Array>): Promise<string> {
-  return new TextDecoder().decode(await buffer);
+export async function succeeds(opts: RunOptions) {
+  try {
+    await output(opts);
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
 /**
- * Convenience function for calling `run` and retrieving the output as text.
+ * Convenience function for converting process output to text.
  */
-export async function runToText(opts: RunOptions) {
-  return await toText(run(opts));
+export async function text(opts: RunOptions) {
+  const buffer = await output(opts);
+  return new TextDecoder().decode(buffer);
 }
 
 /**
- * Convenience function for calling `run` with just the `cmd` array.
+ * Convenience function for calling `output` with just the `cmd` array.
  */
-export async function runCmd(...cmd: Cmd) {
-  return run({ cmd });
+export async function cmdOutput(...cmd: Cmd) {
+  return output({ cmd });
 }
 
 /**
- * Convenience function for calling `runCmd` with just the `cmd` array.
+ * Convenience function for calling `succeeds` with just the `cmd` array.
  */
-export async function runCmdToText(...cmd: Cmd) {
-  return runToText({ cmd });
+export async function cmdSucceeds(...cmd: Cmd) {
+  return succeeds({ cmd });
+}
+
+/**
+ * Convenience function for calling `text` with just the `cmd` array.
+ */
+export async function cmdText(...cmd: Cmd) {
+  return text({ cmd });
 }

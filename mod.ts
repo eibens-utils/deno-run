@@ -5,7 +5,7 @@
  */
 export type Cmd = (string | number)[];
 
-export type RunOptions = {
+export type Process = {
   cmd: Cmd;
   cwd?: string;
   input?: string | Uint8Array;
@@ -20,7 +20,7 @@ export type RunOptions = {
  * - `stdout` is returned as a buffer if the sub-process terminates normally.
  * - `stderr` is converted into text and thrown as an `Error` if the sub-process terminates with an error.
  */
-export async function output(opts: RunOptions) {
+export async function output(opts: Process) {
   const process = Deno.run({
     cwd: opts.cwd,
     cmd: opts.cmd.map(String),
@@ -61,7 +61,7 @@ export async function output(opts: RunOptions) {
 /**
  * Convenience function for getting `true` when the process succeeds, or `false` when it returns an error.
  */
-export async function succeeds(opts: RunOptions) {
+export async function succeeds(opts: Process) {
   try {
     await output(opts);
     return true;
@@ -73,7 +73,7 @@ export async function succeeds(opts: RunOptions) {
 /**
  * Convenience function for converting process output to text.
  */
-export async function text(opts: RunOptions) {
+export async function text(opts: Process) {
   const buffer = await output(opts);
   return new TextDecoder().decode(buffer);
 }

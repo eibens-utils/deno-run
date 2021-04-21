@@ -77,24 +77,3 @@ export async function text(opts: RunOptions) {
   const buffer = await output(opts);
   return new TextDecoder().decode(buffer);
 }
-
-/**
- * Convenience function for calling `output` with just the `cmd` array.
- */
-export async function cmdOutput(...cmd: Cmd) {
-  return output({ cmd });
-}
-
-/**
- * Convenience function for calling `succeeds` with just the `cmd` array.
- */
-export async function cmdSucceeds(...cmd: Cmd) {
-  return succeeds({ cmd });
-}
-
-/**
- * Convenience function for calling `text` with just the `cmd` array.
- */
-export async function cmdText(...cmd: Cmd) {
-  return text({ cmd });
-}

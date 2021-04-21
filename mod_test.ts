@@ -3,26 +3,27 @@ import {
   assertEquals,
   assertThrowsAsync,
 } from "https://deno.land/std@0.90.0/testing/asserts.ts";
-import * as run from "./mod.ts";
+import { output, succeeds, text } from "./mod.ts";
 import { join } from "https://deno.land/std@0.91.0/path/mod.ts";
 
-const mockcli = "mockcli.ts";
+const mockcliFile = "mockcli.ts";
 
-function cmd(path: string, ...args: run.Cmd): run.Cmd {
-  return ["deno", "run", "--allow-read", path, ...args];
-}
+const denoRun = ["deno", "run", "--allow-read"];
+const mockcli = [...denoRun, mockcliFile];
 
 Deno.test("runs a command and returns the output", async () => {
   assertEquals(
-    await run.cmdText(...cmd(mockcli, "answer")),
+    await text({
+      cmd: [...mockcli, "answer"],
+    }),
     "42\n",
   );
 });
 
 Deno.test("run passes input to stdin", async () => {
   assertEquals(
-    await run.text({
-      cmd: cmd(mockcli, "echo"),
+    await text({
+      cmd: [...mockcli, "echo"],
       input: "hello, world",
     }),
     "hello, world",
@@ -32,8 +33,8 @@ Deno.test("run passes input to stdin", async () => {
 Deno.test("run throws error if process fails", async () => {
   await assertThrowsAsync(
     async () => {
-      await run.output({
-        cmd: cmd(mockcli, "fail"),
+      await output({
+        cmd: [...mockcli, "fail"],
         input: "oh no!",
       });
     },
@@ -45,14 +46,14 @@ Deno.test("run throws error if process fails", async () => {
 Deno.test("run uses the specified CWD", async () => {
   // For testing in another CWD we copy the mockcli file to the temporary working dir.
   const cwd = await Deno.makeTempDir();
-  const tmpMockcli = join(cwd, mockcli);
+  const tmpMockcli = join(cwd, mockcliFile);
   const dst = await Deno.create(tmpMockcli);
-  const src = await Deno.open(mockcli);
+  const src = await Deno.open(mockcliFile);
   try {
     await Deno.copy(src, dst);
     assertEquals(
-      await run.text({
-        cmd: cmd(tmpMockcli, "cwd"),
+      await text({
+        cmd: [...denoRun, tmpMockcli, "cwd"],
         cwd,
       }),
       cwd + "\n",
@@ -66,14 +67,16 @@ Deno.test("run uses the specified CWD", async () => {
 
 Deno.test("runSucceeds returns true if command succeeds", async () => {
   assert(
-    await run.cmdSucceeds(...cmd(mockcli, "answer")),
+    await succeeds({
+      cmd: [...mockcli, "answer"],
+    }),
   );
 });
 
 Deno.test("runSucceeds returns false if command fails", async () => {
   assertEquals(
-    await run.succeeds({
-      cmd: cmd(mockcli, "fail"),
+    await succeeds({
+      cmd: [...mockcli, "fail"],
       input: "lol",
     }),
     false,

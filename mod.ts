@@ -1,57 +1,54 @@
-import { Cmd, Process, process } from "./process.ts";
+export type Cmd = (string | number)[];
 
-export type Fun<X, Y> = (x: X) => Y;
-
-export type AsyncFun<X, Y> = Fun<Promise<X>, Promise<Y>>;
-
-export type PipedFun<X, Y> = Fun<Piped<X>, Piped<Y>>;
-
-export type Piped<Y> = Process & {
-  map: AsyncFun<Uint8Array, Y>;
+export type RunOptions = {
+  cmd: Cmd;
+  cwd?: string;
+  input?: string | Uint8Array;
 };
 
-export async function piped<Y>(f: PipedFun<Uint8Array, Y>): Promise<Y> {
-  const noop: Piped<Uint8Array> = { cmd: [], map: (x) => x };
-  const piped = f(noop);
-  return piped.map(process(piped));
-}
-
-export function pipe<X, Y, Z>(f: Fun<X, Y>, g: Fun<Y, Z>): Fun<X, Z> {
-  return (x) => g(f(x));
-}
-
-export function map<X, Y>(f: AsyncFun<X, Y>): PipedFun<X, Y> {
-  return (p) => ({
-    ...p,
-    map: (x) => f(p.map(x)),
+/**
+ * Convenience function for running a process and retrieving the output.
+ * 
+ * Access to the `stdin`, `stdout`, and `stderr` streams is abstracted away: 
+ * 
+ * - `stdin` can be fed data once through the `input` option.
+ * - `stdout` is returned as a buffer if the sub-process terminates normally.
+ * - `stderr` is converted into text and thrown as an `Error` if the sub-process terminates with an error.
+ */
+export async function run(opts: RunOptions): Promise<Uint8Array> {
+  const process = Deno.run({
+    cwd: opts.cwd,
+    cmd: opts.cmd.map(String),
+    stdin: "piped",
+    stdout: "piped",
+    stderr: "piped",
   });
-}
-
-export function mapSync<X, Y>(f: Fun<X, Y>): PipedFun<X, Y> {
-  return map(async (x) => f(await x));
-}
-
-export function set<X>(q: Partial<Piped<X>>): PipedFun<X, X> {
-  return (p) => ({ ...p, ...q });
-}
-
-export function cmd<X>(...cmd: Cmd): PipedFun<X, X> {
-  return set({ cmd });
-}
-
-export const success: PipedFun<any, boolean> = map(
-  async (result) => {
-    try {
-      await result;
-      return true;
-    } catch (error) {
-      return false;
+  try {
+    // Write data to stdin.
+    let input = opts.input || "";
+    if (typeof input === "string") {
+      input = new TextEncoder().encode(input);
     }
-  },
-);
+    process.stdin.write(input);
 
-export const text: PipedFun<Uint8Array, string> = map(
-  async (buffer) => {
-    return new TextDecoder().decode(await buffer);
-  },
-);
+    // Read streams to close them.
+    // For info see: https://github.com/denoland/deno/issues/4568#issuecomment-772463496
+    const [stderr, stdout, status] = await Promise.all([
+      process.stderrOutput(),
+      process.output(),
+      process.status(),
+    ]);
+
+    // Return stdout, or throw error.
+    if (status.success) {
+      return stdout;
+    } else {
+      const error = new TextDecoder().decode(stderr);
+      throw new Error(error);
+    }
+  } finally {
+    // Avoid leaking resources.
+    process.stdin.close();
+    process.close();
+  }
+}

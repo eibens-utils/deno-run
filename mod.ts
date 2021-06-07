@@ -3,14 +3,15 @@ export type Cmd = (string | number)[];
 export type RunOptions = {
   cmd: Cmd;
   cwd?: string;
+  env?: Record<string, string>;
   input?: string | Uint8Array;
 };
 
 /**
  * Convenience function for running a process and retrieving the output.
- * 
- * Access to the `stdin`, `stdout`, and `stderr` streams is abstracted away: 
- * 
+ *
+ * Access to the `stdin`, `stdout`, and `stderr` streams is abstracted away:
+ *
  * - `stdin` can be fed data once through the `input` option.
  * - `stdout` is returned as a buffer if the sub-process terminates normally.
  * - `stderr` is converted into text and thrown as an `Error` if the sub-process terminates with an error.
@@ -19,6 +20,7 @@ export async function run(opts: RunOptions): Promise<Uint8Array> {
   const process = Deno.run({
     cwd: opts.cwd,
     cmd: opts.cmd.map(String),
+    env: opts.env,
     stdin: "piped",
     stdout: "piped",
     stderr: "piped",
